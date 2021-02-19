@@ -1,2 +1,3 @@
-# tsdecomp
-GPU Accelerated Time Series Decomposition by Self Similarity Features
+# Generalized Time Series Decomposition
+GPU Accelerated Time Series Decomposition by means of the
+Self Similarity Matrix.
