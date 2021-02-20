@@ -18,17 +18,17 @@ else
 	CFLAGS+=-Wall
 endif
 
-CFLAGS+=-Wpedantic
-CFLAGS+=-Werror
-
+CFLAGS+=-O2 -Wpedantic -Werror
+CFLAGS+=-fno-strict-aliasing
 IFLAGS+= -Iinclude/
 
 .c.o:
 	$(CC) -c $(CFLAGS) $(IFLAGS) $< -o $@
 
+.tsgen: src/tsgen/frand.o src/tsgen/financial.o
 .info: src/info/info.o
 
-all: compile_commands .info src/main.o
+all: compile_commands .info .tsgen src/main.o
 	$(CC) $(CFLAGS) $(IFLAGS) $(shell find . -type f -name "*.o") -o gtsd.out
 
 .PHONY: clean
