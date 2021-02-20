@@ -1,4 +1,4 @@
-#include <tsgen/frand.h>
+#include <tsgen/randf.h>
 
 double
 randf()
