@@ -1,6 +1,6 @@
 # Clang compilation dictionary
 compile_commands.json
-.clang/*
+.clangd/*
 
 # Prerequisites
 *.d
