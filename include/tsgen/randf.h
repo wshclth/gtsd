@@ -9,6 +9,6 @@
 /*
  * Generates a random double between -1 and 1
  */
-double randf();
+double randf(void);
 
 #endif

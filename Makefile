@@ -14,22 +14,27 @@ endif
 
 ifeq ($(COMPILER), clang)
 	CFLAGS+=-Weverything
+	CFLAGS+=-Wno-padded
 else
 	CFLAGS+=-Wall
 endif
 
-CFLAGS+=-O2 -Wpedantic -Werror
+CFLAGS+=-g3 -O2 -Wpedantic -Werror
 CFLAGS+=-fno-strict-aliasing
-IFLAGS+= -Iinclude/
+IFLAGS+=-Iinclude/
+
+LFLAGS+=-lm
 
 .c.o:
 	$(CC) -c $(CFLAGS) $(IFLAGS) $< -o $@
 
-.tsgen: src/tsgen/frand.o src/tsgen/financial.o
+.selfsimilarity: src/selfsimilarity/selfsimilarity.o \
+	src/selfsimilarity/features.o
+.tsgen: src/tsgen/randf.o src/tsgen/financial.o
 .info: src/info/info.o
 
-all: compile_commands .info .tsgen src/main.o
-	$(CC) $(CFLAGS) $(IFLAGS) $(shell find . -type f -name "*.o") -o gtsd.out
+all: compile_commands .selfsimilarity .info .tsgen src/main.o
+	$(CC) $(CFLAGS) $(IFLAGS) $(LFLAGS) $(shell find . -type f -name "*.o") -o gtsd.out
 
 .PHONY: clean
 clean:

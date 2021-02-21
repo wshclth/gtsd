@@ -17,6 +17,9 @@
 /* expose the time library */
 #include <time.h>
 
+/* exposes the selfsimilarity perform action */
+#include <selfsimilarity/selfsimilarity.h>
+
 typedef struct
 {
   /* always the first argument in argv */
@@ -34,6 +37,8 @@ typedef struct
   /* during generation specify the number of data points */
   size_t data_points;
 
+  /* a place to put the self similarity matrix */
+  const char *out_file;
 } cli_args;
 
 
@@ -55,9 +60,11 @@ _parse_cli(int argc, char **argv, cli_args **_args)
   (*_args)->timeseries_generate = false;
   (*_args)->timeseries_load = false;
   (*_args)->data_points = 0;
+  (*_args)->out_file = NULL;
 
   for (int argidx = 1; argidx < argc; argidx++)
   {
+    /* -s for specifying source type */
     if (strcmp(argv[argidx], "-s") == 0)
     {
       STACK_INFO("%s", "found source type tag");
@@ -73,29 +80,46 @@ _parse_cli(int argc, char **argv, cli_args **_args)
         }
         else
         {
-          STACK_ERROR("found -source but unknown generator %s",
+          STACK_ERROR("found -s but unknown generator %s",
               argv[argidx]);
           return 0;
         }
       }
       else
       {
-        STACK_ERROR("%s", "found -source but no source type");
+        STACK_ERROR("%s", "found -s but no source type");
         free(*_args);
         *_args = NULL;
         return 0;
       }
     }
-    if  (strcmp(argv[argidx], "-dp") == 0)
+    if (strcmp(argv[argidx], "-dp") == 0)
     {
       if (argidx + 1 < argc)
       {
         argidx += 1;
-        (*_args)->data_points = strtol(argv[argidx], NULL, 10);
+        (*_args)->data_points = strtoul(argv[argidx], NULL, 10);
       }
       else
       {
         STACK_ERROR("%s", "found -dp but no data point length was given");
+        free(*_args);
+        *_args = NULL;
+        return 0;
+      }
+    }
+    if (strcmp(argv[argidx], "-out") == 0)
+    {
+      STACK_INFO("%s", "found output file tag");
+      if (argidx + 1 < argc)
+      {
+        argidx += 1;
+        STACK_INFO("setting output file to %s", argv[argidx]);
+        (*_args)->out_file = argv[argidx];
+      }
+      else
+      {
+        STACK_INFO("%s", "found -out but no output file");
         free(*_args);
         *_args = NULL;
         return 0;
@@ -110,7 +134,7 @@ main(int argc, char **argv)
 {
 
   time_t seed = time(NULL);
-  srand(seed);
+  srand((unsigned int) seed);
   STACK_INFO("initalized random seed to %lu", seed);
 
   cli_args *args = NULL;
@@ -120,24 +144,30 @@ main(int argc, char **argv)
     return 1;
   }
 
+  if (args->out_file == NULL)
+  {
+    STACK_ERROR("%s", "-out is required");
+    return 1;
+  }
+
   double *data = NULL;
   if (args->timeseries_load)
   {
     STACK_ERROR("%s", "loading from file is not supported yet");
     return 1;
   }
-
-  if (args->timeseries_generate)
+  else if (args->timeseries_generate)
   {
     STACK_INFO("generating with specified generator %lu points",
         (args->data_points));
 
     if (args->data_points == 0)
     {
-      STACK_ERROR("%s\n", "-dp was not specified with -source");
+      STACK_ERROR("%s\n", "-dp was not specified with -s");
       return 1;
     }
 
+    /* call the generator that was specified */
     switch (args->generator)
     {
       case RANDOM_WALK:
@@ -149,6 +179,18 @@ main(int argc, char **argv)
           }
         }
     }
+  }
+  else
+  {
+    STACK_ERROR("%s", "-s was not specified.");
+    return 1;
+  }
+
+  /* generate the self similarity matrix */
+  if (!selfsimilarity_genmatrix(args->data_points, data, args->out_file))
+  {
+    STACK_TRACE();
+    return 1;
   }
 
   return 0;
