@@ -1,3 +1,4 @@
 # Generalized Time Series Decomposition
-GPU Accelerated Time Series Decomposition by means of the
-Self Similarity Matrix.
+Generalized Time Series Decomposition is an experimental method of generating
+and using large recurrence plots to self identify and segment away features of
+an unknown time series.
