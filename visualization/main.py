@@ -10,6 +10,10 @@ def main():
     data = struct.unpack('d' * num_entries, f.read(8*num_entries))
     f.close()
 
+    pyplot.plot(data)
+    pyplot.show()
+
+    fig, ax = pyplot.subplots(1,1)
     for i in range(0, 1000):
         f = open("/hdd/scratch/test1.frame%d" % (i+1), 'rb')
         (endiness,) = struct.unpack('b', f.read(1))
@@ -22,9 +26,11 @@ def main():
             for j in range(num_features - i - 1):
                 row.append(0)
             frame.append(row)
+        f.close()
 
-        pyplot.imshow(frame)
-        pyplot.show()
+        ax.imshow(frame)
+        pyplot.pause(0.001)
+        ax.clear()
     pass
 
 if __name__ == '__main__':
