@@ -1,7 +1,12 @@
 # Clang compilation dictionary
 compile_commands.json
 .clangd/*
+
+# Various sample test cases
 randomwalk/*
+
+# Vim files
+*.swp
 
 # Prerequisites
 *.d
