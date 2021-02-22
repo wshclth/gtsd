@@ -21,6 +21,7 @@ _stack_error(STACK_FUNC_HEADER, char *fmt, ...)
   vprintf(fmt, args);
   va_end(args);
   printf(RESET "\n");
+  fflush(stdout);
 
   funlockfile(stdout);
 }
@@ -36,6 +37,7 @@ _stack_info(STACK_FUNC_HEADER, char *fmt, ...)
   vprintf(fmt, args);
   va_end(args);
   printf("\n");
+  fflush(stdout);
 
   funlockfile(stdout);
 }

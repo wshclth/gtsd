@@ -16,6 +16,15 @@
 /* clock_t */
 #include <time.h>
 
+/* sysconf */
+#include <unistd.h>
+
+/* threading library for CPU concurrency */
+#include <pthread.h>
+
+/* acos */
+#include <math.h>
+
 #include "features.h"
 
 /*
