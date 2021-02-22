@@ -172,7 +172,7 @@ main(int argc, char **argv)
     {
       case RANDOM_WALK:
         {
-          if (!financial_randomwalk(args->data_points, 0, &data))
+          if (!financial_randomwalk(args->data_points, 10, &data))
           {
             STACK_TRACE();
             return 1;

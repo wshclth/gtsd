@@ -82,7 +82,7 @@ void *_row_kernel(void *args)
 
   const double *row_feature = kernel_data->features[kernel_data->row_index];
 
-  for (size_t colidx = 0; colidx < kernel_data->row_index; ++colidx)
+  for (size_t colidx = 0; colidx < kernel_data->row_index + 1; ++colidx)
   {
     const double *col_feature = kernel_data->features[colidx];
 
@@ -169,6 +169,7 @@ selfsimilarity_genmatrix(size_t len, double *ts, const char *out)
     /* write an endiness bit */
     uint8_t endiness_bit = 1;
     fwrite(&endiness_bit, sizeof(uint8_t), 1, frame);
+    fwrite(&feature_set.num_features, sizeof(size_t), 1, frame);
 
     double total_iterations_time = 0;
     double num_iterations = 0;
@@ -214,7 +215,7 @@ selfsimilarity_genmatrix(size_t len, double *ts, const char *out)
           return 0;
         }
 
-        if (!_flush_row(frame, result->result, result->row_index))
+        if (!_flush_row(frame, result->result, result->row_index + 1))
         {
           STACK_ERROR("error writing row %lu to disk", result->row_index);
           return 0;
@@ -237,6 +238,9 @@ selfsimilarity_genmatrix(size_t len, double *ts, const char *out)
       free(features[rows]);
     }
     free(features);
+
+    fclose(frame);
+
   }
 
   return 1;
