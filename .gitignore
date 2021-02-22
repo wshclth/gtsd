@@ -1,6 +1,7 @@
 # Clang compilation dictionary
 compile_commands.json
 .clangd/*
+randomwalk/*
 
 # Prerequisites
 *.d

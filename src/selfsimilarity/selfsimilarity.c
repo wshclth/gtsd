@@ -173,7 +173,6 @@ selfsimilarity_genmatrix(size_t len, double *ts, const char *out)
 
     double total_iterations_time = 0;
     double num_iterations = 0;
-    double iterations_per_second = 0;
 
     /* split the calculation into blocks of number of processors */
     for (size_t sr = 0; sr < feature_set.num_features; sr += processors)
@@ -227,7 +226,6 @@ selfsimilarity_genmatrix(size_t len, double *ts, const char *out)
       end = clock();
       num_iterations += (double) spawned_threads;
       total_iterations_time += (double) (end-start) / (double) CLOCKS_PER_SEC;
-      iterations_per_second = (num_iterations / total_iterations_time);
     }
     printf("\n");
 
