@@ -4,6 +4,10 @@ compile_commands.json
 
 # Various sample test cases
 randomwalk/*
+small/*
+
+*.wav
+*.gtsd
 
 # Vim files
 *.swp

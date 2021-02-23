@@ -78,6 +78,28 @@ _parse_cli(int argc, char **argv, cli_args **_args)
           (*_args)->generator = RANDOM_WALK;
           continue;
         }
+        else if (strcmp(argv[argidx], "file") == 0)
+        {
+          STACK_INFO("%s", "selected tsgen_loadfile as generator");
+          (*_args)->generator = LOAD_FILE;
+
+          if (argidx + 1 < argc)
+          {
+            argidx += 1;
+            (*_args)->load_location = argv[argidx];
+            STACK_INFO("set load_location to %s", argv[argidx]);
+            (*_args)->timeseries_generate = false;
+            (*_args)->timeseries_load = true;
+            continue;
+          }
+          else
+          {
+            STACK_ERROR("%s", "please specify a file location with file source");
+            return 0;
+          }
+
+          continue;
+        }
         else
         {
           STACK_ERROR("found -s but unknown generator %s",
@@ -151,12 +173,7 @@ main(int argc, char **argv)
   }
 
   double *data = NULL;
-  if (args->timeseries_load)
-  {
-    STACK_ERROR("%s", "loading from file is not supported yet");
-    return 1;
-  }
-  else if (args->timeseries_generate)
+  if (args->timeseries_generate)
   {
     STACK_INFO("generating with specified generator %lu points",
         (args->data_points));
@@ -166,25 +183,29 @@ main(int argc, char **argv)
       STACK_ERROR("%s\n", "-dp was not specified with -s");
       return 1;
     }
+  }
 
-    /* call the generator that was specified */
-    switch (args->generator)
-    {
-      case RANDOM_WALK:
-        {
-          if (!financial_randomwalk(args->data_points, 10, &data))
-          {
-            STACK_TRACE();
-            return 1;
-          }
-        }
-    }
-  }
-  else
+  /* call the generator that was specified */
+  switch (args->generator)
   {
-    STACK_ERROR("%s", "-s was not specified.");
-    return 1;
+    case RANDOM_WALK:
+      {
+        if (!financial_randomwalk(args->data_points, 10, &data))
+        {
+          STACK_TRACE();
+          return 1;
+        }
+      }
+    case LOAD_FILE:
+      {
+        if (!tsgen_loadfile(args->load_location, &data, &(args->data_points)))
+        {
+          STACK_TRACE();
+          return 1;
+        }
+      }
   }
+
 
   /* generate the self similarity matrix */
   if (!selfsimilarity_genmatrix(args->data_points, data, args->out_file))

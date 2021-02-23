@@ -30,7 +30,8 @@ LFLAGS+=-lm -lpthread
 
 .selfsimilarity: src/selfsimilarity/selfsimilarity.o \
 	src/selfsimilarity/features.o
-.tsgen: src/tsgen/randf.o src/tsgen/financial.o
+.tsgen: src/tsgen/randf.o src/tsgen/financial.o \
+				src/tsgen/tsgen.o
 .info: src/info/info.o
 
 all: compile_commands .selfsimilarity .info .tsgen src/main.o
@@ -38,7 +39,7 @@ all: compile_commands .selfsimilarity .info .tsgen src/main.o
 
 .PHONY: clean
 clean:
-	rm **/*.o
+	rm -rf src/**/*.o
 
 .PHONY: compile_commands
 compile_commands:

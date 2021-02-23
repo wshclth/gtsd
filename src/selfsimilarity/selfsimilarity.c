@@ -118,14 +118,14 @@ selfsimilarity_genmatrix(size_t len, double *ts, const char *out)
 
 
   double num_frames = log10((double) (UINT64_MAX - 1));
-  size_t num_frames_digits = strlen(".frame") + (size_t) num_frames;
+  size_t num_frames_digits = strlen(".frame") + (size_t) num_frames + 100;
 
   size_t out_path_len = strlen(out) + num_frames_digits;
   char *out_path = malloc(out_path_len);
   CHECK_ALLOC(out_path, out_path_len);
   memcpy(out_path, out, out_path_len - num_frames_digits);
 
-  for (size_t i = len / 2; i >= 2; --i)
+  for (size_t i = len - 1024; i >= 2; --i)
   {
 
     /* generate the features */

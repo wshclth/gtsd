@@ -8,6 +8,12 @@ int _vector_normalize(double *feature, size_t len)
   {
     inv_norm += (feature[i] * feature[i]);
   }
+
+  if (inv_norm == 0)
+  {
+    return 1;
+  }
+
   inv_norm = 1.0 / sqrt(inv_norm);
 
   double norm = 0;
