@@ -29,17 +29,22 @@ def main(name: str, frame_idx: int) -> None:
     frame = []
 
     f = open(name, 'rb')
-    frame = []
     (endiness,) = struct.unpack(pre + 'b', f.read(1))
     (length,) = struct.unpack('N', f.read(8))
+
+    frame = [[float(0) for x in range(length)] for x in range(length)]
+    frame = np.array(frame)
+
     for i in range(0, length):
-        pyplot.plot([float(x) for x in struct.unpack('d'*length, f.read(8*i))])
-        pyplot.show()
+        row = [float(x) for x in struct.unpack(pre + 'd'*(length-i), f.read(8*(length-i)))]
+        frame = np.add(np.diag(row, -i), frame)
+        print(np.diag(row))
 
     f.close()
-
     ax.clear()
-    pyplot.plot(frame[0])
+   
+    frame = np.array(frame)
+    ax.imshow(frame, aspect='auto')
     pyplot.show()
 
 if __name__ == '__main__':

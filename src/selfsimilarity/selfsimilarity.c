@@ -327,18 +327,20 @@ selfsimilarity_genmatrix_gpu(size_t len, double *ts, const char *out,
   *diag_index_src = 0;
   CHECK_ALLOC(diag_index_src, sizeof(size_t));
 
-  cl_platform_id platform;
-  if (clGetPlatformIDs(1, &platform, NULL) !=
+  cl_platform_id platforms[2];
+  if (clGetPlatformIDs(2, platforms, NULL) !=
       CL_SUCCESS)
   {
     STACK_ERROR("%s", "unable to find a valid platform");
     return 0;
   }
 
+  cl_platform_id platform = platforms[1];
+
   STACK_INFO("%s", "found an opencl platform, looking for a GPU");
 
   cl_device_id device;
-  if (clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, NULL) !=
+  if (clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 2, &device, NULL) !=
       CL_SUCCESS)
   {
     STACK_ERROR("%s", "unable to find a valid OpenCL compatible system on this "
@@ -423,8 +425,7 @@ selfsimilarity_genmatrix_gpu(size_t len, double *ts, const char *out,
 
   STACK_INFO("%s", "set kernel arguments successfully");
 
-  size_t global_size = (*time_series_len_src) - (*diag_index_src) + 1;
-
+  int64_t num_features = (*time_series_len_src) - (*feature_width_src) + 1;
 
   FILE *fp = fopen(out, "wb");
   if (fp == NULL)
@@ -437,28 +438,24 @@ selfsimilarity_genmatrix_gpu(size_t len, double *ts, const char *out,
   uint8_t endiness_bit = 1;
   fwrite(&endiness_bit, sizeof(uint8_t), 1, fp);
 
-  fwrite(&len, sizeof(uint64_t), 1, fp);
+  fwrite(&num_features, sizeof(uint64_t), 1, fp);
 
-  for (int64_t i = (int64_t) *time_series_len_src; i >= 0; --i)
+  for (int64_t i = 0; i < num_features; ++i)
   {
     *diag_index_src = (uint64_t) i;
     ret = clEnqueueWriteBuffer(queue, diag_index_dev, CL_TRUE, 0, sizeof(size_t),
         diag_index_src, 0, NULL, NULL);
 
-    global_size = (*time_series_len_src) - (*diag_index_src) + 1;
-    ret = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0, NULL, NULL);
+    size_t work_size = num_features - i;
+    ret = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &work_size,NULL, 0, NULL, NULL);
 
-    if (ret != CL_SUCCESS)
-    {
-      STACK_ERROR("%s", " i know its here -.-");
-      return 0;
-    }
     clFinish(queue);
-    clEnqueueReadBuffer(queue, result_dev, CL_TRUE, 0, sizeof(double) * len, result_src, 0, NULL, NULL);
-    printf("%f\n", result_src[0]);
+    clEnqueueReadBuffer(queue, result_dev, CL_TRUE, 0, sizeof(double) * work_size, result_src, 0, NULL, NULL);
 
-    _flush_row(fp, result_src, (*time_series_len_src) - (uint64_t)i + 1);
+    _flush_row(fp, result_src, work_size);
+
     fflush(fp);
+    STACK_INFO("[%05.3f%] %lu / %lu", (double)i / (double)num_features, i, num_features);
   }
 
   _write_ts(len, ts, out);

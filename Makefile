@@ -23,7 +23,7 @@ CFLAGS+=-g3 -O2 -Wpedantic -Werror
 CFLAGS+=-fno-strict-aliasing
 IFLAGS+=-Iinclude/
 
-LFLAGS+=-lm -lpthread -lOpenCL
+LFLAGS+=-lm -lpthread -L/cygdrive/c/Windows/System32 -lOpenCL
 
 .c.o:
 	$(CC) -c $(CFLAGS) $(IFLAGS) $< -o $@
