@@ -25,6 +25,9 @@
 /* acos */
 #include <math.h>
 
+/* opencl gpu */
+#include <CL/cl.h>
+
 #include "features.h"
 
 /*
@@ -32,5 +35,8 @@
  * and the timeseries to work with.
  */
 int selfsimilarity_genmatrix(size_t len, double *ts, const char *out);
+
+int selfsimilarity_genmatrix_gpu(size_t len, double *ts, const char *out,
+    size_t feature_width);
 
 #endif

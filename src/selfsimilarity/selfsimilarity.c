@@ -1,7 +1,4 @@
-#include <math.h>
-#include <pthread.h>
 #include <selfsimilarity/selfsimilarity.h>
-#include <time.h>
 
 typedef struct
 {
@@ -241,5 +238,16 @@ selfsimilarity_genmatrix(size_t len, double *ts, const char *out)
 
   }
 
+  return 1;
+}
+
+int
+selfsimilarity_genmatrix_gpu(size_t len, double *ts, const char *out,
+    size_t feature_width)
+{
+  (void) len;
+  (void) ts;
+  (void) out;
+  (void) feature_width;
   return 1;
 }

@@ -9,28 +9,11 @@ int _vector_normalize(double *feature, size_t len)
     inv_norm += (feature[i] * feature[i]);
   }
 
-  if (inv_norm == 0)
-  {
-    return 1;
-  }
-
   inv_norm = 1.0 / sqrt(inv_norm);
 
-  double norm = 0;
   for (size_t i = 0; i < len; ++i)
   {
     feature[i] *= inv_norm;
-    norm += (feature[i] * feature[i]);
-  }
-
-  norm = sqrt(norm);
-
-  if (!(0.9999999999999808 < norm &&
-      norm < 1.0000000000000180))
-  {
-    STACK_ERROR("norm of feature = %.16lu, which is not withing acceptable "
-                "tolerance", norm);
-    return 0;
   }
 
   return 1;

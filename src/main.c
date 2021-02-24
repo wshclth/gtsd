@@ -22,7 +22,7 @@
 
 typedef struct
 {
-  /* always the first argument in argv */
+  /* the location to load a file from */
   const char *load_location;
 
   /* if true will generate the specified time series type */
@@ -39,6 +39,9 @@ typedef struct
 
   /* a place to put the self similarity matrix */
   const char *out_file;
+
+  /* the width of the feature that is required */
+  size_t feature_width;
 } cli_args;
 
 
@@ -56,16 +59,33 @@ _parse_cli(int argc, char **argv, cli_args **_args)
   CHECK_ALLOC(*_args, sizeof(cli_args));
 
   /* set the cli_args to their default value */
-  (*_args)->load_location = argv[0];
+  (*_args)->load_location = NULL;
   (*_args)->timeseries_generate = false;
   (*_args)->timeseries_load = false;
   (*_args)->data_points = 0;
   (*_args)->out_file = NULL;
+  (*_args)->feature_width = 0;
 
   for (int argidx = 1; argidx < argc; argidx++)
   {
+    if (strcmp(argv[argidx], "-w") == 0)
+    {
+      STACK_INFO("%s", "found feature width tag");
+      if (argidx + 1 < argc)
+      {
+        argidx += 1;
+        (*_args)->feature_width = strtoul(argv[argidx], NULL, 10);
+        STACK_INFO("set feature width to %lu", (*_args)->feature_width);
+        continue;
+      }
+      else
+      {
+        STACK_ERROR("%s", "width tag found but no value");
+        return 1;
+      }
+    }
     /* -s for specifying source type */
-    if (strcmp(argv[argidx], "-s") == 0)
+    else if (strcmp(argv[argidx], "-s") == 0)
     {
       STACK_INFO("%s", "found source type tag");
       if (argidx + 1 < argc)
@@ -97,8 +117,6 @@ _parse_cli(int argc, char **argv, cli_args **_args)
             STACK_ERROR("%s", "please specify a file location with file source");
             return 0;
           }
-
-          continue;
         }
         else
         {
@@ -115,7 +133,8 @@ _parse_cli(int argc, char **argv, cli_args **_args)
         return 0;
       }
     }
-    if (strcmp(argv[argidx], "-dp") == 0)
+    /* sepcify the number of data points */
+    else if (strcmp(argv[argidx], "-dp") == 0)
     {
       if (argidx + 1 < argc)
       {
@@ -130,7 +149,8 @@ _parse_cli(int argc, char **argv, cli_args **_args)
         return 0;
       }
     }
-    if (strcmp(argv[argidx], "-out") == 0)
+    /* specify the output */
+    else if (strcmp(argv[argidx], "-out") == 0)
     {
       STACK_INFO("%s", "found output file tag");
       if (argidx + 1 < argc)
@@ -172,6 +192,18 @@ main(int argc, char **argv)
     return 1;
   }
 
+  if (!args->timeseries_generate && !args->timeseries_load)
+  {
+    STACK_ERROR("%s", "no action specified");
+    return 1;
+  }
+
+  if (args->feature_width == 0)
+  {
+    STACK_ERROR("%s", "feature width has not been specified");
+    return 1;
+  }
+
   double *data = NULL;
   if (args->timeseries_generate)
   {
@@ -195,6 +227,7 @@ main(int argc, char **argv)
           STACK_TRACE();
           return 1;
         }
+        break;
       }
     case LOAD_FILE:
       {
@@ -203,12 +236,14 @@ main(int argc, char **argv)
           STACK_TRACE();
           return 1;
         }
+        break;
       }
   }
 
 
   /* generate the self similarity matrix */
-  if (!selfsimilarity_genmatrix(args->data_points, data, args->out_file))
+  if (!selfsimilarity_genmatrix_gpu(args->data_points, data, args->out_file,
+        args->feature_width))
   {
     STACK_TRACE();
     return 1;
