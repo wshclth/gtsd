@@ -1,3 +1,4 @@
+#include <CL/cl.h>
 #include <selfsimilarity/selfsimilarity.h>
 
 typedef struct
@@ -241,13 +242,226 @@ selfsimilarity_genmatrix(size_t len, double *ts, const char *out)
   return 1;
 }
 
+static
+cl_program build_program(cl_context ctx, cl_device_id dev, const char* filename) {
+
+   cl_program program;
+   FILE *program_handle;
+   char *program_buffer, *program_log;
+   size_t program_size, log_size;
+   int err;
+
+   /* Read program file and place content into buffer */
+   program_handle = fopen(filename, "r");
+   if(program_handle == NULL) {
+      perror("Couldn't find the program file");
+      exit(1);
+   }
+   fseek(program_handle, 0, SEEK_END);
+   program_size = (size_t) ftell(program_handle);
+   rewind(program_handle);
+   program_buffer = (char*)malloc(program_size + 1);
+   program_buffer[program_size] = '\0';
+   fread(program_buffer, sizeof(char), program_size, program_handle);
+   fclose(program_handle);
+
+   /* Create program from file
+   Creates a program from the source code in the add_numbers.cl file.
+   Specifically, the code reads the file's content into a char array
+   called program_buffer, and then calls clCreateProgramWithSource.
+   */
+   const char *pb = program_buffer;
+   program = clCreateProgramWithSource(ctx, 1,
+      &pb, &program_size, &err);
+   if(err < 0) {
+      perror("Couldn't create the program");
+      exit(1);
+   }
+   free(program_buffer);
+
+   /* Build program
+   The fourth parameter accepts options that configure the compilation.
+   These are similar to the flags used by gcc. For example, you can
+   define a macro with the option -DMACRO=VALUE and turn off optimization
+   with -cl-opt-disable.
+   */
+   err = clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+   if(err < 0) {
+
+      /* Find size of log and print to std output */
+      clGetProgramBuildInfo(program, dev, CL_PROGRAM_BUILD_LOG,
+            0, NULL, &log_size);
+      program_log = (char*) malloc(log_size + 1);
+      program_log[log_size] = '\0';
+      clGetProgramBuildInfo(program, dev, CL_PROGRAM_BUILD_LOG,
+            log_size + 1, program_log, NULL);
+      printf("%s\n", program_log);
+      free(program_log);
+      exit(1);
+   }
+
+   return program;
+}
+
 int
 selfsimilarity_genmatrix_gpu(size_t len, double *ts, const char *out,
     size_t feature_width)
 {
-  (void) len;
-  (void) ts;
+
   (void) out;
-  (void) feature_width;
+
+  size_t *time_series_len_src = malloc(sizeof(size_t));
+  *time_series_len_src = len;
+
+  size_t *feature_width_src = malloc(sizeof(size_t));
+  CHECK_ALLOC(feature_width_src, sizeof(size_t));
+  *feature_width_src = feature_width;
+
+  size_t *diag_src = malloc(sizeof(double) * len);
+  CHECK_ALLOC(diag_src, sizeof(double) * len);
+
+  double *result_src = malloc(sizeof(double) * len);
+  CHECK_ALLOC(result_src, sizeof(double));
+
+  size_t *diag_index_src = malloc(sizeof(size_t));
+  *diag_index_src = 0;
+  CHECK_ALLOC(diag_index_src, sizeof(size_t));
+
+  cl_platform_id platform;
+  if (clGetPlatformIDs(1, &platform, NULL) !=
+      CL_SUCCESS)
+  {
+    STACK_ERROR("%s", "unable to find a valid platform");
+    return 0;
+  }
+
+  STACK_INFO("%s", "found an opencl platform, looking for a GPU");
+
+  cl_device_id device;
+  if (clGetDeviceIDs(platform, CL_DEVICE_TYPE_GPU, 1, &device, NULL) !=
+      CL_SUCCESS)
+  {
+    STACK_ERROR("%s", "unable to find a valid OpenCL compatible system on this "
+        "computer");
+    return 0;
+  }
+
+  STACK_INFO("%s", "found a gpu");
+
+  cl_int ret;
+  cl_context context;
+  context = clCreateContext(NULL, 1, &device, NULL, NULL, &ret);
+
+  if (ret != CL_SUCCESS)
+  {
+    STACK_ERROR("%s", "unable to accept context");
+    return 0;
+  }
+
+  STACK_INFO("%s", "successfully made connection with gpu");
+
+  cl_program program = build_program(context, device, "cl/recurrence.cl");
+
+  (void) program;
+
+  STACK_INFO("%s", "successfully built cl/recurrence.cl");
+
+  cl_command_queue queue = clCreateCommandQueueWithProperties(context,
+      device, NULL, &ret);
+
+  (void) queue;
+
+
+  if (ret != CL_SUCCESS)
+  {
+    STACK_ERROR("%s", "unable to create queue");
+    return 0;
+  }
+
+  STACK_INFO("%s", "successfully made command queue");
+
+  cl_mem time_series_dev = clCreateBuffer(context,
+      CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      sizeof(double) * len, ts, &ret);
+
+  cl_mem time_series_len_dev = clCreateBuffer(context,
+      CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      sizeof(size_t), time_series_len_src, &ret);
+
+  cl_mem feature_width_dev = clCreateBuffer(context,
+      CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      sizeof(size_t), feature_width_src, &ret);
+
+  cl_mem diag_index_dev = clCreateBuffer(context,
+      CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+      sizeof(size_t), diag_index_src, &ret);
+
+  cl_mem result_dev = clCreateBuffer(context, CL_MEM_WRITE_ONLY,
+      sizeof(double) * len, NULL, NULL);
+
+
+  cl_kernel kernel = clCreateKernel(program, "recurrence_point", &ret);
+  if (ret != CL_SUCCESS)
+  {
+    STACK_ERROR("%s", "unable to create kernel recurrence_point");
+    return 0;
+  }
+
+  STACK_INFO("%s", "created kernel recurrence_point");
+
+  ret  = clSetKernelArg(kernel, 0, sizeof(cl_mem), &time_series_dev);
+  ret |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &time_series_len_dev);
+  ret |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &feature_width_dev);
+  ret |= clSetKernelArg(kernel, 3, sizeof(cl_mem), &diag_index_dev);
+  ret |= clSetKernelArg(kernel, 4, sizeof(cl_mem), &result_dev);
+
+  if (ret != CL_SUCCESS)
+  {
+    STACK_ERROR("%s", "unable to set kernel arguments");
+    return 0;
+  }
+
+  STACK_INFO("%s", "set kernel arguments successfully");
+
+  size_t global_size = (*time_series_len_src) - (*diag_index_src) + 1;
+
+
+  FILE *fp = fopen(out, "wb");
+  if (fp == NULL)
+  {
+    STACK_ERROR("unable to create file %s", out);
+    return 0;
+  }
+
+  /* write an endiness bit */
+  uint8_t endiness_bit = 1;
+  fwrite(&endiness_bit, sizeof(uint8_t), 1, fp);
+
+  fwrite(&len, sizeof(uint64_t), 1, fp);
+
+  for (int64_t i = (int64_t) *time_series_len_src; i >= 0; --i)
+  {
+    *diag_index_src = (uint64_t) i;
+    ret = clEnqueueWriteBuffer(queue, diag_index_dev, CL_TRUE, 0, sizeof(size_t),
+        diag_index_src, 0, NULL, NULL);
+
+    global_size = (*time_series_len_src) - (*diag_index_src) + 1;
+    ret = clEnqueueNDRangeKernel(queue, kernel, 1, NULL, &global_size, NULL, 0, NULL, NULL);
+
+    if (ret != CL_SUCCESS)
+    {
+      STACK_ERROR("%s", " i know its here -.-");
+      return 0;
+    }
+    clFinish(queue);
+    clEnqueueReadBuffer(queue, result_dev, CL_TRUE, 0, sizeof(double) * len, result_src, 0, NULL, NULL);
+    printf("%f\n", result_src[0]);
+
+    _flush_row(fp, result_src, (*time_series_len_src) - (uint64_t)i + 1);
+    fflush(fp);
+  }
+
+  _write_ts(len, ts, out);
+
   return 1;
 }
