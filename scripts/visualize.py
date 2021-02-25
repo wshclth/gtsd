@@ -7,7 +7,7 @@ import struct
 import sys
 import math
 
-def main(name: str, frame_idx: int) -> None:
+def main(name: str, frame_idx_start:int, frame_idx_end: int) -> None:
     f = open(name + '.ts', 'rb')
     (endiness,) = struct.unpack('b', f.read(1))
 
@@ -32,20 +32,24 @@ def main(name: str, frame_idx: int) -> None:
     (endiness,) = struct.unpack(pre + 'b', f.read(1))
     (length,) = struct.unpack('N', f.read(8))
 
-    frame = [[float(0) for x in range(length)] for x in range(length)]
-    frame = np.array(frame)
-
-    for i in range(0, length):
-        row = [float(x) for x in struct.unpack(pre + 'd'*(length-i), f.read(8*(length-i)))]
-        frame = np.add(np.diag(row, -i), frame)
-        print(np.diag(row))
+    print(length)
+    frame = []
+    
+    for i in range(0, frame_idx_end):
+        row = [0 for _ in range(i)] + [float(x) for x in struct.unpack(pre + 'd'*(length-i), f.read(8*(length-i)))] 
+        if i >= frame_idx_start:
+            row = np.array(row)
+            where_are_NaNs = np.isnan(row)
+            row[where_are_NaNs] = 0 
+            frame.append(row)
 
     f.close()
     ax.clear()
    
     frame = np.array(frame)
+    frame = frame.transpose()
     ax.imshow(frame, aspect='auto')
     pyplot.show()
 
 if __name__ == '__main__':
-    main(sys.argv[1], int(sys.argv[2]))
+    main(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]))

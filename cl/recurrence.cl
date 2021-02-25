@@ -12,10 +12,10 @@ void recurrence_point(__global const double *time_series,
 
   int num_features = (*time_series_len - *feature_width) + 1;
 
-  int row_index = id + (*diag_index);
-  int col_index = id - (*diag_index);
+  int row_index = id + *diag_index;
+  int col_index = *diag_index;
 
-  if (row_index > num_features || col_index < 0)
+  if (row_index > num_features)
   {
     return;
   }
@@ -34,5 +34,5 @@ void recurrence_point(__global const double *time_series,
   rnorm = sqrt(rnorm);
   cnorm = sqrt(cnorm);
 
-  result[id - (*diag_index)] = acos(dotrc / (rnorm * cnorm));
+  result[id] = acos(dotrc / (rnorm * cnorm));
 }

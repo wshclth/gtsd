@@ -453,8 +453,8 @@ selfsimilarity_genmatrix_gpu(size_t len, double *ts, const char *out,
     clEnqueueReadBuffer(queue, result_dev, CL_TRUE, 0, sizeof(double) * work_size, result_src, 0, NULL, NULL);
 
     _flush_row(fp, result_src, work_size);
-
     fflush(fp);
+    
     STACK_INFO("[%05.3f%] %lu / %lu", (double)i / (double)num_features, i, num_features);
   }
 
